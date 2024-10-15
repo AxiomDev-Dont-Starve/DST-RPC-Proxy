@@ -4,32 +4,30 @@ This is the backend proxy component for the [DST-RPC mod](https://github.com/Axi
 It is required to bridge the presence mod to Discord's RPC server due to the restrictive nature of Dont Starve Together's mod sandbox.
 
 ## Installation
-Installing the proxy server is more involved than the presence mod.
+First, download the latest release of the proxy executable for your OS from the [releases page](https://github.com/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases).
 
-* Firstly, the proxy server currently requires [Node.js](https://nodejs.org/) (any modern version) to be installed on your machine.
-* Download the latest build of the proxy server by clicking the green `<> Code` button and hit "Download ZIP."
-* Unzip the file and run `npm install` in the unzipped folder to download the necessary packages. Remember where you unzipped it.
-
-You can now choose to start the proxy server manually with the included ``start.bat`` file (or equivalent). <br>
+You can now choose to start the proxy server manually by double-clicking or running it. <br>
 The proxy will need to be started each time you launch Don't Starve Together, and will stop automatically when the game closes.
 Read on to see how to fully automate the starting of the proxy server.
 
 ## Full Automation
-To start the proxy automatically, you must do two things:
-* If you are using Steam to launch DST: right click the game in Steam, go to properties, general, and in the `launch options` field, add the following line: <br>
+To start the proxy automatically, you must do three things:
+* If you are using Steam to launch DST: right click the game in your Steam library; click properties, general, and in the `launch options` field, add the following line (or equivalent on Linux): <br>
 ```
 start.bat %COMMAND%
 ```
 * Next, still in the properties menu, go to installed files, and click `Browse...`.
-* Go into the `bin64` folder (or `bin` for 32-bit DST) and create a new file called `start.bat`.
-* Inside this file, paste the following batch script:
+* Go into the `bin64` folder (or `bin` for 32-bit DST).
+* Now, take the proxy executable you downloaded earlier, and place it inside this folder.
+* Still in this folder, create a new file called `start.bat`. Inside this file, paste the following batch script:
 ```
 @echo off
 start dontstarve_steam_x64.exe
-cmd /c start /min node "C:\Path\to\the\proxy\server\index.mjs"
+start dst-rpc-proxy-win.exe
 exit
 ```
-Where `"C:\Path\to\the\proxy\server\index.mjs"` will be changed out for your specific path from earlier.
+Where `dst-rpc-proxy-win.exe` will be changed out for your specific executable.
+
 
 And you're done! Now when you launch DST, the proxy server will automatically come up alongside it. <br>
 When DST shuts down, so does the proxy server. Enjoy your completely automated rich presence!

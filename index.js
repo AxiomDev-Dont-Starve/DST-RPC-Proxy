@@ -1,15 +1,15 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import RPC from 'discord-rpc';
-import psList from 'ps-list';
+const express    = require('express');
+const bodyParser = require('body-parser');
+const RPC        = require('discord-rpc');
+const exec       = require('child_process').exec;
 
-console.log("DST-Discord RPC Proxy v0.1.0 by ArmoredFuzzball");
+console.log("DST-Discord RPC Proxy v0.2.0 by ArmoredFuzzball");
 
 const app = express();
 app.use(bodyParser.raw({ type: 'application/json', inflate: true, limit: '2kb' }));
 
 let appId;
-await getAppId();
+getAppId();
 
 //fetch the official application id
 async function getAppId() {
@@ -29,9 +29,9 @@ let presenceData = {
 app.post('/update', (req, res) => {
     const clean = req.body.toString().replace(/\n/g, '').replace(/\\/g, '');
     const json = JSON.parse(clean);
-    // console.log(json);
     presenceData = { ...presenceData, ...json };
     for (const key in presenceData) if (json[key] == '') delete presenceData[key];
+    // console.log(presenceData);
 });
 
 app.listen(4747, () => console.log('Proxy is listening for updates from DST'));
@@ -48,10 +48,15 @@ function handleRPCConnection() {
 }
 
 function handleProcessCheck() {
-    psList().then(data => {
-        const process = data.find(proc => proc.name.includes('dontstarve'));
-        if (!process) deleteRPC();
-        else if (!rpc && !connected) createRPC();
+    exec('tasklist', (err, stdout, stderr) => {
+        let exists = false
+        for (const process of stdout.split('\n')) {
+            if (process.includes('dontstarve')) {
+                exists = true;
+                if (!rpc && !connected) createRPC();
+            }
+        }
+        if (!exists) deleteRPC();
     });
 }
 
