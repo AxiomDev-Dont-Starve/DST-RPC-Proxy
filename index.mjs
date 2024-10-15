@@ -1,9 +1,9 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import RPC from 'discord-rpc';
-import ps from 'ps-node';
+import psList from 'ps-list';
 
-console.log("DST-Discord RPC Proxy v0.0.1 by ArmoredFuzzball");
+console.log("DST-Discord RPC Proxy v0.1.0 by ArmoredFuzzball");
 
 const app = express();
 app.use(bodyParser.raw({ type: 'application/json', inflate: true, limit: '2kb' }));
@@ -41,15 +41,16 @@ setInterval(() => {
     if (!appId) return;
     handleRPCConnection();
     handleProcessCheck();
-}, 500);
+}, 800);
 
 function handleRPCConnection() {
     if (rpc && connected) rpc.setActivity(presenceData);
 }
 
 function handleProcessCheck() {
-    ps.lookup({ command: 'dontstarve' }, (err, resultList) => {
-        if (resultList.length == 0) deleteRPC();
+    psList().then(data => {
+        const process = data.find(proc => proc.name.includes('dontstarve'));
+        if (!process) deleteRPC();
         else if (!rpc && !connected) createRPC();
     });
 }
@@ -74,7 +75,7 @@ function deleteRPC() {
     console.log('Disconnected from Discord RPC');
     presenceData = {
         largeImageKey: 'large-image',
-        largeImageText: 'DST-RPC on GitHub',
+        largeImageText: 'DST-RPC-Mod on GitHub',
         details: 'Loading...'
     };
     process.exit();
