@@ -1,12 +1,12 @@
-const express    = require('express');
-const bodyParser = require('body-parser');
-const RPC        = require('discord-rpc');
-const exec       = require('child_process').exec;
+const express = require('express');
+const RPC     = require('discord-rpc');
+const exec    = require('child_process').exec;
 
-console.log("DST-Discord RPC Proxy v0.2.0 by ArmoredFuzzball");
+console.log("DST-Discord RPC Proxy v0.3.0 by ArmoredFuzzball");
+console.log("Check for updates at https://github.com/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases");
 
 const app = express();
-app.use(bodyParser.raw({ type: 'application/json', inflate: true, limit: '2kb' }));
+app.use(express.raw({ type: 'application/json', limit: '2kb' }));
 
 let appId;
 getAppId();
@@ -20,18 +20,19 @@ async function getAppId() {
     } else console.log('Fetched the application id');
 }
 
-let presenceData = {
+const ACTIVITY = {
     largeImageKey: 'large-image',
-    largeImageText: 'DST-RPC on GitHub',
-    details: 'Loading...'
+    largeImageText: 'DST-RPC-Mod on GitHub'
 };
 
 app.post('/update', (req, res) => {
     const clean = req.body.toString().replace(/\n/g, '').replace(/\\/g, '');
     const json = JSON.parse(clean);
-    presenceData = { ...presenceData, ...json };
-    for (const key in presenceData) if (json[key] == '') delete presenceData[key];
-    // console.log(presenceData);
+    for (const [key, value] of Object.entries(json)) {
+        if (value == "") delete ACTIVITY[key];
+        else ACTIVITY[key] = value;
+    }
+    // console.log(ACTIVITY);
 });
 
 app.listen(4747, () => console.log('Proxy is listening for updates from DST'));
@@ -39,16 +40,18 @@ app.listen(4747, () => console.log('Proxy is listening for updates from DST'));
 
 setInterval(() => {
     if (!appId) return;
-    handleRPCConnection();
-    handleProcessCheck();
+    setActivity();
+    checkProcessExists();
 }, 800);
 
-function handleRPCConnection() {
-    if (rpc && connected) rpc.setActivity(presenceData);
+function setActivity() {
+    if (rpc && connected) rpc.setActivity(ACTIVITY);
 }
 
-function handleProcessCheck() {
+function checkProcessExists() {
     exec('tasklist', (err, stdout, stderr) => {
+        if (err) return console.error(err);
+        if (stderr) return console.error(stderr);
         let exists = false
         for (const process of stdout.split('\n')) {
             if (process.includes('dontstarve')) {
@@ -69,7 +72,7 @@ async function createRPC() {
     await new Promise(res => rpc.on('ready', res));
     connected = true; //race condition because of await, maybe add a connecting check
     console.log('Connected to Discord RPC');
-    presenceData.startTimestamp = Date.now();
+    ACTIVITY.startTimestamp = Date.now();
 }
 
 function deleteRPC() {
@@ -78,11 +81,6 @@ function deleteRPC() {
     rpc.destroy();
     rpc = null;
     console.log('Disconnected from Discord RPC');
-    presenceData = {
-        largeImageKey: 'large-image',
-        largeImageText: 'DST-RPC-Mod on GitHub',
-        details: 'Loading...'
-    };
     process.exit();
 }
 
