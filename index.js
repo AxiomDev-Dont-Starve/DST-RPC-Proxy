@@ -1,8 +1,9 @@
 const express = require('express');
 const RPC     = require('discord-rpc');
 const exec    = require('child_process').exec;
+const fs      = require('fs');
 
-console.log("DST-Discord RPC Proxy v0.3.0 by ArmoredFuzzball");
+console.log("DST-Discord RPC Proxy v1.0.0 by ArmoredFuzzball");
 console.log("Check for updates at https://github.com/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases");
 
 const app = express();
@@ -11,13 +12,19 @@ app.use(express.raw({ type: 'application/json', limit: '2kb' }));
 let appId;
 getAppId();
 
-//fetch the official application id
 async function getAppId() {
-    appId = await fetch('https://axiomdev.net/dst/rpc/appid').then(res => res.text());
-    if (!appId) {
-        console.error('Failed to fetch the application id. Central server may be down, will try again automatically.');
-        setTimeout(getAppId, 60000);
-    } else console.log('Fetched the application id');
+    appId = await fetch('https://axiomdev.net/dst/rpc/appid').then(res => res.status === 200 && res.text()).catch(() => false);
+    appId = appId && appId.trim();
+    if (appId) {
+        console.log('Fetched the application id');
+        fs.writeFileSync('./appid.txt', appId);
+    } else if (fs.existsSync('./appid.txt')) {
+        appId = fs.readFileSync('./appid.txt', 'utf8');
+        console.log('Fetch failed, loaded the application id from backup');
+    } else {
+        console.error('Failed to fetch or load the application id. Central server may be down, will try again automatically.');
+        setTimeout(() => getAppId(), 60000);
+    }
 }
 
 const ACTIVITY = {
@@ -25,7 +32,7 @@ const ACTIVITY = {
     largeImageText: 'DST-RPC-Mod on GitHub'
 };
 
-app.post('/update', (req, res) => {
+app.post('/update', (req,) => {
     const clean = req.body.toString().replace(/\n/g, '').replace(/\\/g, '');
     const json = JSON.parse(clean);
     for (const [key, value] of Object.entries(json)) {
@@ -49,28 +56,24 @@ function setActivity() {
 }
 
 function checkProcessExists() {
-    exec('tasklist', (err, stdout, stderr) => {
-        if (err) return console.error(err);
-        if (stderr) return console.error(stderr);
-        let exists = false
-        for (const process of stdout.split('\n')) {
-            if (process.includes('dontstarve')) {
-                exists = true;
-                if (!rpc && !connected) createRPC();
-            }
-        }
-        if (!exists) deleteRPC();
+    const command = process.platform === 'win32' ? 'tasklist' : 'ps aux';
+    exec(command, (err, stdout, stderr) => {
+        if (err || stderr) return console.error(err || stderr);
+        if (stdout.includes('dontstarve')) createRPC();
+        else deleteRPC();
     });
 }
 
 let connected = false;
 let rpc;
 async function createRPC() {
-    if (connected) return;
+    if (rpc || connected) return;
     rpc = new RPC.Client({ transport: 'ipc' });
+    // delay so we don't start before DST's built-in presence
+    await new Promise(res => setTimeout(res, 12000));
     rpc.login({ clientId: appId }).catch(console.error);
     await new Promise(res => rpc.on('ready', res));
-    connected = true; //race condition because of await, maybe add a connecting check
+    connected = true;
     console.log('Connected to Discord RPC');
     ACTIVITY.startTimestamp = Date.now();
 }
