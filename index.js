@@ -3,11 +3,15 @@ const RPC     = require('discord-rpc');
 const exec    = require('child_process').exec;
 const fs      = require('fs');
 
-console.log("DST-Discord RPC Proxy v1.0.0 by ArmoredFuzzball");
+/**
+ * @typedef {import('discord-rpc').Client} Client
+ */
+
+console.log("DST-Discord RPC Proxy v1.0.1 by ArmoredFuzzball");
 console.log("Check for updates at https://github.com/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases");
 
 const app = express();
-app.use(express.raw({ type: 'application/json', limit: '2kb' }));
+app.use(express.json());
 
 let appId;
 getAppId();
@@ -32,14 +36,16 @@ const ACTIVITY = {
     largeImageText: 'DST-RPC-Mod on GitHub'
 };
 
-app.post('/update', (req,) => {
-    const clean = req.body.toString().replace(/\n/g, '').replace(/\\/g, '');
-    const json = JSON.parse(clean);
-    for (const [key, value] of Object.entries(json)) {
+let resolver;
+const readyPromise = new Promise(res => resolver = res);
+app.post('/update', (req, res) => {
+    for (const [key, value] of Object.entries(req.body)) {
         if (value == "") delete ACTIVITY[key];
         else ACTIVITY[key] = value;
     }
     // console.log(ACTIVITY);
+    resolver();
+    res.end();
 });
 
 app.listen(4747, () => console.log('Proxy is listening for updates from DST'));
@@ -65,12 +71,12 @@ function checkProcessExists() {
 }
 
 let connected = false;
-let rpc;
+/** @type {Client} */ let rpc;
+
 async function createRPC() {
     if (rpc || connected) return;
     rpc = new RPC.Client({ transport: 'ipc' });
-    // delay so we don't start before DST's built-in presence
-    await new Promise(res => setTimeout(res, 12000));
+    await readyPromise; // delay so we don't start before DST's built-in presence
     rpc.login({ clientId: appId }).catch(console.error);
     await new Promise(res => rpc.on('ready', res));
     connected = true;
