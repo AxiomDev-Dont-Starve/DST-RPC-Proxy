@@ -4,7 +4,7 @@ This is the backend proxy component for the [DST-RPC mod](https://github.com/Axi
 It is required to bridge the presence mod to Discord's RPC server due to the restrictive nature of Dont Starve Together's mod sandbox.
 
 ## Installation
-First, download the latest release of the proxy executable for your OS from the [releases page](https://github.com/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases).
+First, download the latest release of the proxy executable for your OS from the [releases page](https://github.com/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases/latest).
 
 You can now choose to start the proxy server manually by double-clicking or running it. <br>
 The proxy will need to be started each time you launch Don't Starve Together, and will stop automatically when the game closes.
