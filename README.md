@@ -12,7 +12,7 @@ Read on to see how to fully automate the starting of the proxy server.
 
 ## Full Automation
 To start the proxy automatically, you must do three things:
-* If you are using Steam to launch DST: right click the game in your Steam library; click properties, general, and in the `launch options` field, add the following line (or equivalent on Linux): <br>
+* If you are using Steam to launch DST: right-click the game in your Steam library; click properties, general, and in the `launch options` field, add the following line (or equivalent on Linux): <br>
 ```
 start.bat %COMMAND%
 ```
@@ -23,7 +23,7 @@ start.bat %COMMAND%
 ```
 @echo off
 start dontstarve_steam_x64.exe
-start dst-rpc-proxy-win.exe
+dst-rpc-proxy-win.exe
 exit
 ```
 Where `dst-rpc-proxy-win.exe` will be changed out for your specific executable.
