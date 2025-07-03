@@ -1,15 +1,21 @@
 import express from 'express';
 import RPC from 'discord-rpc';
-import { existsSync, readFileSync, writeFileSync, createWriteStream } from 'fs';
+import { existsSync, readFileSync, writeFileSync, createWriteStream, mkdirSync } from 'fs';
 // import { performance } from 'perf_hooks';
 import psList from 'ps-list';
 import { Readable } from 'stream';
 import lodash from 'lodash';
+import packageInfo from '../package.json' with { type: 'json' };
 
 /** @typedef {import('discord-rpc').Client} Client */
 
-const version = 'v2.0.0';
+const version = 'v' + packageInfo.version;
 console.log(`DST-Discord RPC Proxy ${version} by ArmoredFuzzball`);
+
+if (!existsSync('rpc')) {
+    console.log('Creating rpc directory');
+    mkdirSync('rpc');
+}
 
 fetchLatestVersion();
 async function fetchLatestVersion() {
@@ -28,14 +34,14 @@ async function fetchLatestVersion() {
     }
 }
 
-if (process.platform === 'win32' && !existsSync(`fastlist-0.3.0-x64.exe`)) fetchFastlistBinary();
+if (process.platform === 'win32' && !existsSync(`rpc/fastlist-0.3.0-x64.exe`)) fetchFastlistBinary();
 async function fetchFastlistBinary() {
     console.log('Downloading Fastlist binary for optimized Windows process checking. This will only happen once.');
     try {
-        const file = await fetch(`https://github.com/MarkTiedemann/fastlist/releases/download/v0.3.0/fastlist-0.3.0-x64.exe`);
-        if (!file.ok) throw new Error(`Failed to fetch fastlist binary: ${file.status} ${file.statusText}`);
-        let writer = createWriteStream(`fastlist-0.3.0-x64.exe`);
-        Readable.fromWeb(file.body).pipe(writer);
+        const response = await fetch(`https://github.com/MarkTiedemann/fastlist/releases/download/v0.3.0/fastlist-0.3.0-x64.exe`);
+        if (!response.ok) throw new Error(`Failed to fetch fastlist binary: ${response.status} ${response.statusText}`);
+        const writer = createWriteStream(`rpc/fastlist-0.3.0-x64.exe`);
+        Readable.fromWeb(response.body).pipe(writer);
     } catch (error) {
         console.error('Failed to download fastlist binary:', error);
         console.error('Please ensure you have a working internet connection and try again.');
@@ -46,16 +52,17 @@ async function fetchFastlistBinary() {
 let appId;
 fetchAppId();
 async function fetchAppId() {
-    appId = await fetch('https://axiomdev.net/dst/rpc/appid').then(res => res.status === 200 && res.text()).catch(() => false);
-    appId = appId && appId.trim();
-    if (appId) {
-        console.log('Fetched the application id');
-        writeFileSync('appid.txt', appId);
-    } else if (existsSync('appid.txt')) {
-        appId = readFileSync('appid.txt', 'utf8');
-        console.log('Fetch failed, loaded the application id from backup');
-    } else {
-        console.error('Failed to fetch or load the application id. Central server may be down, will try again automatically.');
+    if (existsSync('rpc/appid.txt')) return appId = readFileSync('rpc/appid.txt', 'utf8');
+    try {
+        console.log('Downloading Discord application id. This will only happen once.');
+        const response = await fetch('https://axiomdev.net/dst/rpc/appid');
+        if (!response.ok) throw new Error(`Failed to fetch application id: ${response.status} ${response.statusText}`);
+        appId = (await response.text()).trim();
+        if (!appId) throw new Error('Application id is empty?');
+        writeFileSync('rpc/appid.txt', appId);
+    } catch (error) {
+        console.error('Failed to fetch application id:', error);
+        console.error('Central server may be down, will try again automatically.');
         setTimeout(() => fetchAppId(), 60000);
     }
 }
@@ -72,31 +79,28 @@ let previousActivity;
 let resolver;
 const readyPromise = new Promise(res => resolver = res);
 app.post('/update', (req, res) => {
+    // const start = performance.now();
     for (const [key, value] of Object.entries(req.body)) {
         if (value == "") delete ACTIVITY[key];
         else ACTIVITY[key] = value;
     }
     // console.log(ACTIVITY);
     resolver();
+    attemptActivityUpdate();
     res.end();
+    // console.log(`Section took ${(performance.now() - start).toFixed(2)}ms`);
 });
 
 app.listen(4747, () => console.log('Proxy is listening for updates from DST'));
 
-setInterval(() => {
-    // const start = performance.now();
-    if (!appId) return;
-    checkProcessExists();
-    attemptActivityUpdate();
-    // console.log(`Section took ${(performance.now() - start).toFixed(2)}ms`);
-}, 800);
+setInterval(() => { if (appId) checkProcessExists() }, 1e3);
 
 let lastUpdateTime = 0;
 function attemptActivityUpdate() {
-    if (Date.now() - lastUpdateTime < 15e3) return; // prevent spamming Discord
+    if (Date.now() - lastUpdateTime < 5e3) return; // prevent spamming Discord
     if (lodash.isEqual(previousActivity, ACTIVITY)) return;
-    // console.log('Updating activity with new data');
     if (rpc && connected) {
+        // console.log('Updating activity with new data');
         lastUpdateTime = Date.now();
         previousActivity = { ...ACTIVITY };
         rpc.setActivity(ACTIVITY);

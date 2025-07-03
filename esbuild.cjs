@@ -13,7 +13,7 @@ require('esbuild').build({
   define: { 'import.meta.url': 'import_meta_url' },
 }).then(() => {
   const file = fs.readFileSync(filePath, 'utf8');
-  const modifiedData = file.replace('import_node_path.default.join(__dirname, "vendor", binary);', 'import_node_path.default.join(binary);');
+  const modifiedData = file.replace('import_node_path.default.join(__dirname, "vendor", binary);', 'import_node_path.default.join("rpc", binary);');
   fs.writeFileSync(filePath, modifiedData, 'utf8');
   console.log('ESbuild completed successfully.');
 });
