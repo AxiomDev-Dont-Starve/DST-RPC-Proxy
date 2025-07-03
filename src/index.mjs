@@ -17,15 +17,17 @@ if (!existsSync('rpc')) {
     mkdirSync('rpc');
 }
 
+let latestVersion = "[Fetch error]";
 fetchLatestVersion();
 async function fetchLatestVersion() {
     try {
         const response = await fetch('https://api.github.com/repos/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases/latest');
         if (!response.ok) throw new Error(`Failed to fetch latest version: ${response.status} ${response.statusText}`);
         const data = await response.json();
-        if (data.tag_name !== version) {
+        latestVersion = data.tag_name;
+        if (version !== latestVersion) {
             console.warn('==================================================================================================');
-            console.warn(`HEY! You are running an outdated version of the proxy. Please update to the latest version: ${data.tag_name}`);
+            console.warn(`HEY! You are running an outdated version of the proxy. Please update to the latest version: ${latestVersion}`);
             console.warn('Download here: https://github.com/AxiomDev-Dont-Starve/DST-RPC-Proxy/releases/latest');
             console.warn('==================================================================================================');
         } else console.log('You are running the latest version of the proxy.');
@@ -91,6 +93,16 @@ app.post('/update', (req, res) => {
     // console.log(`Section took ${(performance.now() - start).toFixed(2)}ms`);
 });
 
+app.get('/version/current', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(version);
+});
+
+app.get('/version/latest', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(latestVersion);
+});
+
 app.listen(4747, () => console.log('Proxy is listening for updates from DST'));
 
 setInterval(() => { if (appId) checkProcessExists() }, 1e3);
@@ -101,9 +113,9 @@ function attemptActivityUpdate() {
     if (lodash.isEqual(previousActivity, ACTIVITY)) return;
     if (rpc && connected) {
         // console.log('Updating activity with new data');
-        lastUpdateTime = Date.now();
-        previousActivity = { ...ACTIVITY };
         rpc.setActivity(ACTIVITY);
+        previousActivity = { ...ACTIVITY };
+        lastUpdateTime = Date.now();
     }
 }
 

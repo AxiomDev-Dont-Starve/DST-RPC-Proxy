@@ -1,7 +1,7 @@
 {
   "name": "dst-discord-rpc-proxy",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "build": "npm run esbuild && npm run pkg",
