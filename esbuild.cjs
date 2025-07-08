@@ -3,7 +3,7 @@ const path = require('path');
 const filePath = path.resolve(__dirname, './dist/index.cjs');
 
 require('esbuild').build({
-  entryPoints: ['./src/index.mjs'],
+  entryPoints: ['./src/main.mjs'],
   bundle: true,
   platform: 'node',
   format: 'cjs',
